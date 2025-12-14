@@ -116,13 +116,13 @@
                     <h6 class="fw-bold text-dark mb-3"><i class="bi bi-patch-check-fill text-primary me-2"></i> Mengapa Memilih Kami?</h6>
                     <ul class="list-unstyled text-secondary">
                         <li class="mb-2">
-                            <i class="bi bi-circle-fill" style="font-size: 0.5rem; color: #6c757d;"></i> **Keberlanjutan Lingkungan**: Mendukung siklus pakai ulang barang.
+                            <i class="bi bi-circle-fill" style="font-size: 0.5rem; color: #6c757d;"></i>  Keberlanjutan Lingkungan : Mendukung siklus pakai ulang barang.
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-circle-fill" style="font-size: 0.5rem; color: #6c757d;"></i> **Harga Mahasiswa**: Menawarkan harga yang sangat terjangkau.
+                            <i class="bi bi-circle-fill" style="font-size: 0.5rem; color: #6c757d;"></i>  Harga Mahasiswa : Menawarkan harga yang sangat terjangkau.
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-circle-fill" style="font-size: 0.5rem; color: #6c757d;"></i> **Komunitas Terpercaya**: Lingkungan jual beli yang aman dan eksklusif untuk mahasiswa.
+                            <i class="bi bi-circle-fill" style="font-size: 0.5rem; color: #6c757d;"></i>  Komunitas Terpercaya : Lingkungan jual beli yang aman dan eksklusif untuk mahasiswa.
                         </li>
                     </ul>
                 </div>

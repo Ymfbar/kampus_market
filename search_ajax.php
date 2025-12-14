@@ -16,6 +16,7 @@ $sql = "
     FROM items i
     LEFT JOIN categories c ON i.kategori_id = c.id
     WHERE i.nama_barang LIKE ?
+    AND i.status = 'approved' /* FILTER DITAMBAHKAN */
 ";
 $params = ["%$q%"];
 $types = "s";
@@ -56,3 +57,4 @@ while($row = $res->fetch_assoc()){
 // Kembalikan JSON
 header('Content-Type: application/json');
 echo json_encode($items);
+

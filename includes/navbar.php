@@ -220,6 +220,11 @@ $image_src = $prefix . 'uploads/logo.png';
         <span class="text">Search</span>
     </a>
 
+    <a href="<?= $prefix ?>jual.php" class="menu-item">
+        <span class="icon"><i class="bi bi-plus-circle"></i></span>
+        <span class="text">Jual</span>
+    </a>
+
     <a href="<?= $prefix ?>inbox.php" class="menu-item">
         <span class="icon">
             <i class="bi bi-envelope"></i>

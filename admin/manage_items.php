@@ -1,5 +1,3 @@
-// ymfbar/kampus_market/kampus_market-0bdaf0d5a808d5a69b67d6f643b0aaae9a1157fd/admin/manage_items.php
-
 <?php
 include '../includes/header.php';
 if(!isset($_SESSION['user']) || $_SESSION['user']['role']!=='admin'){ header("Location: ../index.php"); exit; }

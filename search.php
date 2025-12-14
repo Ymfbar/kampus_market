@@ -7,6 +7,7 @@ $defaultItems = $conn->query("
     SELECT i.*, c.nama_kategori AS kategori
     FROM items i
     LEFT JOIN categories c ON i.kategori_id = c.id
+    WHERE i.status = 'approved' /* FILTER DITAMBAHKAN */
     ORDER BY i.created_at DESC
     LIMIT 12
 ");

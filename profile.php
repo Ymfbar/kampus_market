@@ -3,8 +3,13 @@
 session_start();
 include 'includes/config.php';
 
-// Ambil data user (harus sebelum POST jika kita butuh data lama)
-$uid = $_SESSION['user']['id'] ?? 0;
+// Cek otentikasi
+if (!isset($_SESSION['user'])) {
+    header("Location: login.php");
+    exit;
+}
+
+$uid = $_SESSION['user']['id'];
 $user = [];
 if($uid > 0) {
     $stmt = $conn->prepare("SELECT nama, email, no_telp, foto FROM users WHERE id=? LIMIT 1");
@@ -17,12 +22,6 @@ if($uid > 0) {
 // Handle update profile (LOGIKA POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     
-    // Cek otentikasi
-    if (!isset($_SESSION['user'])) {
-        header("Location: login.php");
-        exit;
-    }
-
     $nama = trim($_POST['nama']);
     $email = trim($_POST['email']);
     $no_telp = trim($_POST['no_telp']);
@@ -57,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
         $_SESSION['flash_msg'] = 'Profile berhasil diperbarui';
         $_SESSION['user']['nama'] = $nama;
         $_SESSION['user']['email'] = $email;
+        $_SESSION['user']['foto'] = $foto_name; // Update foto di session
         header("Location: profile.php"); 
         exit;
     }
@@ -93,6 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_photo'])) {
     
     if ($stmt_delete->execute()) {
         $_SESSION['flash_msg'] = 'Foto profil berhasil dihapus';
+        $_SESSION['user']['foto'] = $empty_string; // Update session
         header("Location: profile.php");
         exit;
     } else {
@@ -106,7 +107,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_photo'])) {
 <?php 
 // Panggil header HANYA setelah semua logika redirect selesai
 include 'includes/header.php'; 
-include 'includes/auth.php'; 
 
 // Ambil data user lagi (atau gunakan data dari atas)
 $uid = $_SESSION['user']['id'];
@@ -116,19 +116,28 @@ $stmt->execute();
 $res = $stmt->get_result();
 $user = $res->fetch_assoc();
 
-// Flash message
+// FLASH MESSAGE (MODIFIKASI: Menggunakan alert-light dan text-dark)
 $msg = '';
 if (isset($_SESSION['flash_msg'])) {
-    $msg = '<div class="alert alert-success flash-msg">'.$_SESSION['flash_msg'].'</div>';
+    $msg = '<div class="alert alert-light border text-dark flash-msg">'.$_SESSION['flash_msg'].'</div>';
     unset($_SESSION['flash_msg']);
 }
 
 
-// Ambil barang user
-$itemStmt = $conn->prepare("SELECT * FROM items WHERE user_id=? ORDER BY created_at DESC");
-$itemStmt->bind_param('i', $uid);
-$itemStmt->execute();
-$items = $itemStmt->get_result();
+// MODIFIKASI: Ambil barang user berdasarkan status
+// Query untuk mengambil item yang di-approve
+$approvedItemsResult = $conn->query("
+    SELECT * FROM items 
+    WHERE user_id = $uid AND status = 'approved'
+    ORDER BY created_at DESC
+");
+
+// Query baru untuk mengambil item yang sedang pending
+$pendingItemsResult = $conn->query("
+    SELECT * FROM items 
+    WHERE user_id = $uid AND status = 'pending'
+    ORDER BY created_at DESC
+");
 ?>
 
 <style>
@@ -141,16 +150,25 @@ $items = $itemStmt->get_result();
     font-weight:600;
     letter-spacing:.2px;
 }
-.item-card{
-    background:#ffffff;
-    border:1px solid #e5e7eb;
+/* Style untuk konsistensi product card (mirip search.php/index.php) */
+.product-card{
+    transition: all .25s ease;
+    position: relative; 
     border-radius:14px;
-    transition:.2s;
+    border:1px solid #e5e7eb; /* Default border */
 }
-.item-card:hover{
-    transform:translateY(-4px);
-    box-shadow:0 10px 25px rgba(0,0,0,.08);
+.product-card:hover{
+    transform: translateY(-4px);
+    box-shadow: 0 18px 35px rgba(0,0,0,.1) !important; 
 }
+
+/* Modifikasi untuk item yang Approved agar menggunakan border standar */
+.product-card.approved-item {
+    border: 1px solid #e5e7eb; /* Border abu-abu standar */
+}
+
+/* Pertahankan border warning untuk item Pending */
+
 .btn-neutral{
     background:#111827;
     color:#fff;
@@ -176,12 +194,12 @@ $items = $itemStmt->get_result();
 <div class="d-flex align-items-center mb-3">
 <?php if(!empty($user['foto'])): ?>
     <img src="<?= 'uploads/'.$user['foto'] ?>"
-         class="rounded-circle me-3"
-         width="72" height="72"
-         style="object-fit:cover;">
+          class="rounded-circle me-3"
+          width="72" height="72"
+          style="object-fit:cover;">
 <?php else: ?>
     <div class="rounded-circle me-3 d-flex align-items-center justify-content-center"
-         style="width:72px;height:72px;background:#f3f4f6;">
+          style="width:72px;height:72px;background:#f3f4f6;">
         <i class="bi bi-person fs-2 text-secondary"></i>
     </div>
 <?php endif; ?>
@@ -252,40 +270,105 @@ $items = $itemStmt->get_result();
     </form>
 <?php endif; ?>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex justify-content-between align-items-center mb-4">
 <h5 class="section-title mb-0">Barang yang aku jual</h5>
-<a href="jual.php" class="btn btn-sm btn-neutral">Tambah Barang</a>
+<a href="jual.php" class="btn btn-sm btn-neutral rounded-pill px-4">Tambah Barang</a>
 </div>
 
-<div class="row g-4">
-<?php if($items->num_rows > 0): ?>
-<?php while($item = $items->fetch_assoc()): ?>
-<div class="col-md-6 col-lg-4">
-<div class="item-card h-100 shadow-sm">
-<img src="<?= $item['foto'] ? 'uploads/'.$item['foto'] : 'assets/img/placeholder.png' ?>"
-     class="w-100"
-     style="height:180px;object-fit:cover;border-radius:14px 14px 0 0;">
+<div class="mb-5">
+    <h6 class="fw-bold text-dark mb-3">
+        Menunggu Persetujuan (Pending) 
+    </h6>
+    
+    <?php if($pendingItemsResult->num_rows > 0): ?>
+    <div class="row g-4">
+        <?php while($item = $pendingItemsResult->fetch_assoc()): ?>
+        <div class="col-6 col-md-4 col-lg-3"> 
+            <div class="card h-100 pending-item product-card shadow-sm">
+                <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-2" style="z-index: 10;">PENDING</span>
+                
+                <img src="<?= htmlspecialchars($item['foto'] ? 'uploads/'.$item['foto'] : 'assets/img/placeholder.png') ?>"
+                     class="card-img-top"
+                     style="height:150px;object-fit:cover;border-radius:14px 14px 0 0;">
 
-<div class="p-3">
-<h6 class="mb-1"><?= htmlspecialchars($item['nama_barang']) ?></h6>
-<div class="fw-semibold mb-1">Rp <?= number_format($item['harga']) ?></div>
-<div class="text-muted-small mb-2"><?= $item['created_at'] ?></div>
+                <div class="card-body p-3 d-flex flex-column">
+                    <h6 class="fw-semibold mb-1 text-dark text-truncate" style="font-size: 0.95rem;">
+                        <?= htmlspecialchars($item['nama_barang']) ?>
+                    </h6>
+                    <span class="fw-bold text-dark mb-2" style="font-size: 0.9rem;">
+                        Rp <?= number_format($item['harga']) ?>
+                    </span>
+                    <small class="text-muted text-truncate mt-auto">
+                        Tanggal Posting: <?= date('d M Y', strtotime($item['created_at'])) ?>
+                    </small>
+                </div>
 
-<div class="d-flex gap-2">
-<a href="edit_barang.php?id=<?= $item['id'] ?>" class="btn btn-sm btn-outline-dark w-100">Edit</a>
-<a href="hapus_barang.php?id=<?= $item['id'] ?>" 
-   class="btn btn-sm btn-outline-danger w-100"
-   onclick="return confirm('Yakin hapus?')">Hapus</a>
+                <div class="card-footer bg-white border-0 p-3 pt-0 d-flex gap-2">
+                    <a href="edit_barang.php?id=<?= $item['id'] ?>" class="btn btn-sm btn-outline-secondary w-100">
+                        Edit
+                    </a>
+                    <a href="hapus_barang.php?id=<?= $item['id'] ?>" class="btn btn-sm btn-outline-danger w-100" 
+                       onclick="return confirm('Apakah Anda yakin ingin menghapus barang ini?');">
+                        Hapus
+                    </a>
+                </div>
+            </div>
+        </div>
+        <?php endwhile; ?>
+    </div>
+    <?php else: ?>
+    <div class="alert alert-dark border-0 text-center">
+        Tidak ada barang yang sedang menunggu persetujuan Admin.
+    </div>
+    <?php endif; ?>
 </div>
-</div>
-</div>
-</div>
-<?php endwhile; ?>
-<?php else: ?>
-<div class="alert alert-light border text-center">
-Belum ada barang yang kamu jual
-</div>
-<?php endif; ?>
+
+<hr class="mb-4">
+
+<div class="mb-4">
+    <h6 class="fw-bold text-dark mb-3">
+        Barang Terposting (Approved) 
+    </h6>
+    
+    <?php if($approvedItemsResult->num_rows > 0): ?>
+    <div class="row g-4">
+        <?php while($item = $approvedItemsResult->fetch_assoc()): ?>
+        <div class="col-6 col-md-4 col-lg-3">
+            <div class="card h-100 approved-item product-card shadow-sm">
+                <img src="<?= htmlspecialchars($item['foto'] ? 'uploads/'.$item['foto'] : 'assets/img/placeholder.png') ?>"
+                     class="card-img-top"
+                     style="height:150px;object-fit:cover;border-radius:14px 14px 0 0;">
+
+                <div class="card-body p-3 d-flex flex-column">
+                    <h6 class="fw-semibold mb-1 text-dark text-truncate" style="font-size: 0.95rem;">
+                        <?= htmlspecialchars($item['nama_barang']) ?>
+                    </h6>
+                    <span class="fw-bold text-dark mb-2" style="font-size: 0.9rem;">
+                        Rp <?= number_format($item['harga']) ?>
+                    </span>
+                    <small class="text-muted text-truncate mt-auto">
+                        Tanggal Posting: <?= date('d M Y', strtotime($item['created_at'])) ?>
+                    </small>
+                </div>
+                
+                <div class="card-footer bg-white border-0 p-3 pt-0 d-flex gap-2">
+                    <a href="edit_barang.php?id=<?= $item['id'] ?>" class="btn btn-sm btn-outline-secondary w-100">
+                        Edit
+                    </a>
+                    <a href="hapus_barang.php?id=<?= $item['id'] ?>" class="btn btn-sm btn-outline-danger w-100" 
+                       onclick="return confirm('Apakah Anda yakin ingin menghapus barang ini?');">
+                        Hapus
+                    </a>
+                </div>
+            </div>
+        </div>
+        <?php endwhile; ?>
+    </div>
+    <?php else: ?>
+    <div class="alert alert-info border-0 text-center">
+        Anda belum memiliki barang yang ditampilkan di pasar.
+    </div>
+    <?php endif; ?>
 </div>
 
 </div>
@@ -298,7 +381,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if(editBtn && flashMsg){
         editBtn.addEventListener('click', () => {
-            flashMsg.remove(); // hanya hapus notif profil
+            if(flashMsg.parentElement.classList.contains('profile-card')) {
+                 flashMsg.remove(); // hanya hapus notif profil
+            }
         });
     }
 
@@ -311,33 +396,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
-    // Cek perubahan sebelum submit
-    const form = document.getElementById('editProfileFormTag');
-    const originalData = {
-        nama: document.getElementById('namaInput').value,
-        email: document.getElementById('emailInput').value,
-        no_telp: document.getElementById('telpInput').value,
-        foto: document.getElementById('fotoInput').value
-    };
-
-    form.addEventListener('submit', function(e){
-        const currentData = {
-            nama: document.getElementById('namaInput').value,
-            email: document.getElementById('emailInput').value,
-            no_telp: document.getElementById('telpInput').value,
-            foto: document.getElementById('fotoInput').value
-        };
-
-        if(currentData.nama === originalData.nama &&
-           currentData.email === originalData.email &&
-           currentData.no_telp === originalData.no_telp &&
-           currentData.foto === ''){
-            e.preventDefault();
-            alert('Tidak ada perubahan yang dilakukan');
-        }
-    });
 });
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<?php include 'includes/footer.php'; ?>

@@ -64,6 +64,7 @@
     $sql = "SELECT i.*, u.nama AS seller 
             FROM items i 
             JOIN users u ON i.user_id = u.id 
+            WHERE i.status = 'approved' /* FILTER DITAMBAHKAN */
             ORDER BY i.created_at DESC";
     $res = $conn->query($sql);
     while($row = $res->fetch_assoc()):

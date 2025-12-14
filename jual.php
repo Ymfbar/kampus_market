@@ -21,11 +21,15 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
 
     $upload_error = false;
     
-    // --- BAGIAN BARU: Penanganan Bukti Bayar Tax Admin (Opsional) ---
+    // --- MODIFIKASI: Penanganan Bukti Bayar Tax Admin (DIBUAT WAJIB) ---
     $bukti_bayar_tax_name = NULL;
     $has_tax_upload = false;
     
-    if(isset($_FILES['bukti_bayar_tax']) && $_FILES['bukti_bayar_tax']['error'] === UPLOAD_ERR_OK){
+    // Cek apakah bukti bayar tax wajib di-upload
+    if(!isset($_FILES['bukti_bayar_tax']) || $_FILES['bukti_bayar_tax']['error'] !== UPLOAD_ERR_OK){
+        $_SESSION['flash_msg'] = "Bukti bayar tax admin wajib di-upload."; // PESAN WAJIB
+        $upload_error = true;
+    } else {
         $has_tax_upload = true;
         $ext_tax = pathinfo($_FILES['bukti_bayar_tax']['name'], PATHINFO_EXTENSION);
         // Izinkan format gambar dan PDF untuk bukti pembayaran
@@ -38,7 +42,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
             $bukti_bayar_tax_name = uniqid('tax_').'.'.$ext_tax;
         }
     }
-    // --- AKHIR BAGIAN BARU ---
+    // --- AKHIR MODIFIKASI BAGIAN BARU ---
 
     if(!isset($_FILES['foto']) || $_FILES['foto']['error'] !== UPLOAD_ERR_OK){
         $_SESSION['flash_msg'] = "Foto wajib di-upload";
@@ -58,26 +62,28 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
         $foto_name = uniqid('itm_').'.'.$ext;
         
         if($nama){
-            // --- MODIFIKASI INSERT QUERY: Tambah bukti_bayar_tax di sini ---
+            // --- MODIFIKASI INSERT QUERY: Tambah bukti_bayar_tax dan STATUS ---
             $stmt = $conn->prepare(
-                "INSERT INTO items (user_id, kategori_id, nama_barang, deskripsi, harga, foto, bukti_bayar_tax)
-                 VALUES (?,?,?,?,?,?,?)"
+                "INSERT INTO items (user_id, kategori_id, nama_barang, deskripsi, harga, foto, bukti_bayar_tax, status)
+                 VALUES (?,?,?,?,?,?,?,?)"
             );
             $uid = $_SESSION['user']['id'];
-            // Tambah 's' untuk parameter bukti_bayar_tax
-            $stmt->bind_param('iississ', $uid, $kategori, $nama, $deskripsi, $harga, $foto_name, $bukti_bayar_tax_name);
+            $status_pending = 'pending'; // Set status awal ke pending
+            // Tambah 's' untuk status
+            $stmt->bind_param('iississs', $uid, $kategori, $nama, $deskripsi, $harga, $foto_name, $bukti_bayar_tax_name, $status_pending);
 
             if($stmt->execute()){
                 // Pindahkan file foto utama
                 move_uploaded_file($_FILES['foto']['tmp_name'], 'uploads/'.$foto_name);
                 
-                // --- Pindahkan file bukti bayar jika ada ---
+                // --- Pindahkan file bukti bayar ---
                 if($has_tax_upload){
                     move_uploaded_file($_FILES['bukti_bayar_tax']['tmp_name'], 'uploads/'.$bukti_bayar_tax_name);
                 }
                 
                 // PRG: Lakukan REDIRECT setelah POST berhasil
-                $_SESSION['flash_msg'] = "Barang berhasil diposting";
+                // PESAN BARU
+                $_SESSION['flash_msg'] = "Barang sedang ditinjau oleh Admin.";
                 header("Location: jual.php");
                 exit;
             } else {
@@ -210,7 +216,7 @@ $catResult = $conn->query("SELECT * FROM categories ORDER BY nama_kategori ASC")
 
 <div class="mb-4">
     <label class="form-label">Admin Tax (Rp.2000)</label>
-    <input type="file" name="bukti_bayar_tax" class="form-control" accept=".jpg,.jpeg,.png,.webp,.pdf">
+    <input type="file" name="bukti_bayar_tax" class="form-control" accept=".jpg,.jpeg,.png,.webp,.pdf" required>
 </div>
 <button class="btn btn-neutral w-100 py-2">
     Posting Barang

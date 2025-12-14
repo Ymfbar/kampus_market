@@ -1,5 +1,3 @@
-// ymfbar/kampus_market/kampus_market-0bdaf0d5a808d5a69b67d6f643b0aaae9a1157fd/admin/approve_item.php
-
 <?php
 session_start();
 include '../includes/config.php';

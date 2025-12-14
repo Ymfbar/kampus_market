@@ -6,26 +6,20 @@ if (session_status() === PHP_SESSION_NONE) {
 
 include_once __DIR__ . '/config.php';
 
+// Inisialisasi flag untuk mengontrol tampilan notifikasi
+$show_rejected_alert = false;
+
 // --- LOGIKA NOTIFIKASI BARANG DITOLAK ---
-if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'user') {
-    $current_user_id = $_SESSION['user']['id'];
+// Hanya tampilkan notifikasi jika:
+// 1. User sedang login dan rolenya 'user'
+// 2. Ada notifikasi reject di session
+// 3. user_id di notifikasi reject SAMA dengan user_id yang sedang login
+if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'user' && 
+    isset($_SESSION['rejected_item_alert']) && 
+    isset($_SESSION['rejected_item_alert']['user_id']) && 
+    $_SESSION['rejected_item_alert']['user_id'] == $_SESSION['user']['id']) {
     
-    // Cek apakah ada notifikasi penolakan yang menunggu untuk user ini
-    if (isset($_SESSION['rejected_item_alert']) && $_SESSION['rejected_item_alert']['user_id'] == $current_user_id) {
-        // Notifikasi akan ditampilkan di bagian HTML di bawah
-        // Item yang ditolak sudah ada di session
-    } else {
-        // Cek DB, pastikan notifikasi sudah dibaca/dihilangkan. 
-        // Ini adalah fallback untuk kasus notifikasi session terhapus/gagal.
-        // Cek apakah ada item rejected yang belum pernah diberi notifikasi (atau hanya cek status rejected)
-        
-        // Cek sederhana: Cek item rejected milik user, batasi 1 untuk notifikasi pop-up.
-        // Jika Anda ingin notifikasi hanya muncul *sekali*, gunakan logika di `reject_item.php`
-        // dan hanya tampilkan jika session `rejected_item_alert` ada.
-        
-        // Logika saat ini hanya mengandalkan session yang di-set di reject_item.php,
-        // yang akan terhapus setelah ditampilkan di bagian HTML di bawah.
-    }
+    $show_rejected_alert = true;
 }
 
 ?>
@@ -36,18 +30,15 @@ if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'user') {
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Preppy Finds</title>
 
-  <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-  <!-- Bootstrap Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
-  <!-- Custom CSS -->
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
 
-<?php if (isset($_SESSION['rejected_item_alert'])): ?>
+<?php if ($show_rejected_alert): // Notifikasi hanya tampil jika $show_rejected_alert true ?>
 <div id="rejectedNotification" style="
     position: fixed;
     top: 50%;
@@ -63,17 +54,17 @@ if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'user') {
     text-align: center;
 ">
     <h4 style="color: #b45309; margin-bottom: 10px;">⚠️ PEMBERITAHUAN PENTING</h4>
-    <p style="margin-bottom: 20px;">Barang Anda: "<strong><?= htmlspecialchars($_SESSION['rejected_item_alert']['nama_barang']) ?></strong>" telah **DITOLAK** oleh Admin.</p>
+    <p style="margin-bottom: 20px;">Barang Anda: "<strong><?= htmlspecialchars($_SESSION['rejected_item_alert']['nama_barang']) ?></strong>" telah **DITOLAK** oleh Admin. Cek detail di halaman Profile Anda.</p>
     
-    <a href="../profile.php" 
-       class="btn btn-sm" 
-       style="background-color: #b45309; color: white; padding: 8px 15px; border-radius: 5px; text-decoration: none; font-weight: bold;"
-       onclick="document.getElementById('rejectedNotification').style.display='none';">
-        Pratinjau (Ke Profile)
+    <a href="profile.php" 
+        class="btn btn-sm" 
+        style="background-color: #b45309; color: white; padding: 8px 15px; border-radius: 5px; text-decoration: none; font-weight: bold;"
+        onclick="document.getElementById('rejectedNotification').style.display='none';">
+        Lihat Profile
     </a>
 </div>
 <?php 
-    // Hapus session notifikasi agar pop-up tidak muncul berulang kali di halaman lain
+    // Hapus session notifikasi agar pop-up tidak muncul berulang kali setelah ditampilkan
     unset($_SESSION['rejected_item_alert']); 
 ?>
 <?php endif; ?>

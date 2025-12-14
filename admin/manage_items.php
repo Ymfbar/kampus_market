@@ -1,15 +1,15 @@
 <?php
-include '../includes/header.php';
-if(!isset($_SESSION['user']) || $_SESSION['user']['role']!=='admin'){ header("Location: ../index.php"); exit; }
+include '../includes/header.php'; //
+if(!isset($_SESSION['user']) || $_SESSION['user']['role']!=='admin'){ header("Location: ../index.php"); exit; } //
 
 // --- MODIFIKASI: Ambil SEMUA item (tidak peduli status) ---
-$res = $conn->query("SELECT i.*, u.nama AS seller FROM items i JOIN users u ON i.user_id=u.id ORDER BY i.created_at DESC");
+$res = $conn->query("SELECT i.*, u.nama AS seller FROM items i JOIN users u ON i.user_id=u.id ORDER BY i.created_at DESC"); //
 
 // Ambil pesan flash dari session jika ada (dari approve_item.php)
-$msg = '';
-if (isset($_SESSION['flash_msg_admin'])) {
-    $msg = $_SESSION['flash_msg_admin'];
-    unset($_SESSION['flash_msg_admin']);
+$msg = ''; //
+if (isset($_SESSION['flash_msg_admin'])) { //
+    $msg = $_SESSION['flash_msg_admin']; //
+    unset($_SESSION['flash_msg_admin']); //
 }
 ?>
 
@@ -22,7 +22,7 @@ if (isset($_SESSION['flash_msg_admin'])) {
     background-color: #d1fae5; /* Hijau muda */
     color: #059669; /* Hijau tua */
 }
-/* Tambahkan kode ini */
+/* Kode untuk status rejected */
 .status-rejected {
     background-color: #fef3c7; /* Kuning muda */
     color: #b45309; /* Coklat tua */
@@ -40,6 +40,19 @@ if (isset($_SESSION['flash_msg_admin'])) {
 .btn-action-approve:hover {
     background-color: #059669;
 }
+/* Tombol Reject */
+.btn-action-reject {
+    background-color: #b45309; /* Coklat tua (sesuai status-rejected color) */
+    color: white;
+    border: 1px solid #b45309;
+    transition: background-color 0.2s;
+    border-radius: 8px;
+    font-weight: 500;
+}
+.btn-action-reject:hover {
+    background-color: #8c4107; 
+}
+/* Style umum badge */
 .status-badge {
     padding: 3px 8px;
     border-radius: 6px;
@@ -58,8 +71,8 @@ if (isset($_SESSION['flash_msg_admin'])) {
 
 <div class="mb-2 text-center">
     <img src="../uploads/logoku.png" 
-         alt="Logo"
-         style="width:1200px; height:120px; object-fit:contain;">
+          alt="Logo"
+          style="width:1200px; height:120px; object-fit:contain;">
 </div>
 
 <h3>📦 Manage Items</h3>
@@ -113,10 +126,8 @@ if (isset($_SESSION['flash_msg_admin'])) {
                onclick="return confirm('Setujui item ini?')">
                 Approve
             </a>
-            </a>
             <a href="reject_item.php?id=<?= $it['id'] ?>" 
-               class="btn btn-sm btn-action-delete mb-1" 
-               style="background-color: #b45309; color: white;"
+               class="btn btn-sm btn-action-reject mb-1" 
                onclick="return confirm('Tolak item ini? Status akan diubah menjadi Rejected.')">
                 Reject
             </a>

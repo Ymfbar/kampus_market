@@ -1,25 +1,28 @@
 <?php 
-include 'includes/header.php'; 
-include 'includes/auth.php'; 
+// BLOK LOGIKA HARUS DI ATAS SEMUA INCLUDE UNTUK MENCEGAH 'HEADERS ALREADY SENT'
+session_start();
+include 'includes/config.php';
 
-$uid = $_SESSION['user']['id'];
-
-// Flash message
-$msg = '';
-if (isset($_SESSION['flash_msg'])) {
-    $msg = '<div class="alert alert-success flash-msg">'.$_SESSION['flash_msg'].'</div>';
-    unset($_SESSION['flash_msg']);
+// Ambil data user (harus sebelum POST jika kita butuh data lama)
+$uid = $_SESSION['user']['id'] ?? 0;
+$user = [];
+if($uid > 0) {
+    $stmt = $conn->prepare("SELECT nama, email, no_telp, foto FROM users WHERE id=? LIMIT 1");
+    $stmt->bind_param('i', $uid);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $user = $res->fetch_assoc();
 }
 
-// Ambil data user
-$stmt = $conn->prepare("SELECT nama, email, no_telp, foto FROM users WHERE id=? LIMIT 1");
-$stmt->bind_param('i', $uid);
-$stmt->execute();
-$res = $stmt->get_result();
-$user = $res->fetch_assoc();
-
-// Handle update profile
+// Handle update profile (LOGIKA POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
+    
+    // Cek otentikasi
+    if (!isset($_SESSION['user'])) {
+        header("Location: login.php");
+        exit;
+    }
+
     $nama = trim($_POST['nama']);
     $email = trim($_POST['email']);
     $no_telp = trim($_POST['no_telp']);
@@ -29,6 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
         $ext = pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION);
         $allow = ['jpg','jpeg','png','webp'];
         if(in_array(strtolower($ext), $allow)){
+            // Hapus foto lama jika ada dan berbeda
+            if($user['foto'] && $user['foto'] !== 'student.png' && file_exists('uploads/'.$user['foto'])) {
+                @unlink('uploads/'.$user['foto']);
+            }
             $foto_name = uniqid('avatar_').'.'.$ext;
             move_uploaded_file($_FILES['foto']['tmp_name'], 'uploads/'.$foto_name);
         }
@@ -43,17 +50,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
         exit;
     }
 
-    $stmt = $conn->prepare("UPDATE users SET nama=?, email=?, no_telp=?, foto=? WHERE id=?");
-    $stmt->bind_param('ssssi', $nama, $email, $no_telp, $foto_name, $uid);
+    $stmt_update = $conn->prepare("UPDATE users SET nama=?, email=?, no_telp=?, foto=? WHERE id=?");
+    $stmt_update->bind_param('ssssi', $nama, $email, $no_telp, $foto_name, $uid);
 
-    if ($stmt->execute()) {
+    if ($stmt_update->execute()) {
         $_SESSION['flash_msg'] = 'Profile berhasil diperbarui';
         $_SESSION['user']['nama'] = $nama;
         $_SESSION['user']['email'] = $email;
+        header("Location: profile.php"); 
+        exit;
+    }
+}
+
+
+// NEW LOGIC: Handle delete photo
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_photo'])) {
+    
+    if (!isset($_SESSION['user'])) {
+        header("Location: login.php");
+        exit;
+    }
+
+    $uid = $_SESSION['user']['id'];
+    
+    // Ambil nama foto saat ini
+    $stmt_fetch = $conn->prepare("SELECT foto FROM users WHERE id=? LIMIT 1");
+    $stmt_fetch->bind_param('i', $uid);
+    $stmt_fetch->execute();
+    $res_fetch = $stmt_fetch->get_result();
+    $current_user = $res_fetch->fetch_assoc();
+    $old_foto = $current_user['foto'];
+    
+    // Hanya hapus jika foto ada dan bukan placeholder
+    if(!empty($old_foto) && $old_foto !== 'student.png' && file_exists('uploads/'.$old_foto)) {
+        @unlink('uploads/'.$old_foto);
+    }
+    
+    // Update DB: Set foto ke string kosong
+    $empty_string = '';
+    $stmt_delete = $conn->prepare("UPDATE users SET foto=? WHERE id=?");
+    $stmt_delete->bind_param('si', $empty_string, $uid);
+    
+    if ($stmt_delete->execute()) {
+        $_SESSION['flash_msg'] = 'Foto profil berhasil dihapus';
+        header("Location: profile.php");
+        exit;
+    } else {
+        $_SESSION['flash_msg'] = 'Gagal menghapus foto profil';
         header("Location: profile.php");
         exit;
     }
 }
+?>
+
+<?php 
+// Panggil header HANYA setelah semua logika redirect selesai
+include 'includes/header.php'; 
+include 'includes/auth.php'; 
+
+// Ambil data user lagi (atau gunakan data dari atas)
+$uid = $_SESSION['user']['id'];
+$stmt = $conn->prepare("SELECT nama, email, no_telp, foto FROM users WHERE id=? LIMIT 1");
+$stmt->bind_param('i', $uid);
+$stmt->execute();
+$res = $stmt->get_result();
+$user = $res->fetch_assoc();
+
+// Flash message
+$msg = '';
+if (isset($_SESSION['flash_msg'])) {
+    $msg = '<div class="alert alert-success flash-msg">'.$_SESSION['flash_msg'].'</div>';
+    unset($_SESSION['flash_msg']);
+}
+
 
 // Ambil barang user
 $itemStmt = $conn->prepare("SELECT * FROM items WHERE user_id=? ORDER BY created_at DESC");
@@ -98,7 +167,6 @@ $items = $itemStmt->get_result();
 
 <div class="container mt-4">
 
-<!-- PROFILE -->
 <div class="row mb-4">
 <div class="col-lg-4 col-md-5">
 
@@ -137,41 +205,53 @@ $items = $itemStmt->get_result();
 </div>
 </div>
 
-<!-- EDIT PROFILE -->
 <div class="collapse mb-4" id="editProfileForm">
 <div class="card border-0 shadow-sm p-4">
-<form id="editProfileFormTag" method="post" enctype="multipart/form-data">
-<input type="hidden" name="update_profile" value="1">
+    <form id="editProfileFormTag" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="update_profile" value="1">
 
-<div class="mb-3">
-<label class="form-label">Foto Profil</label>
-<input type="file" name="foto" class="form-control" id="fotoInput">
+        <div class="mb-3">
+            <label class="form-label">Foto Profil</label>
+            <input type="file" name="foto" class="form-control" id="fotoInput">
+        </div>
+
+        <?php if(!empty($user['foto'])): ?>
+            <div class="mb-3 text-start">
+                <button type="button" class="btn btn-sm btn-outline-danger" id="deletePhotoBtn">
+                    Hapus Foto Profil Saat Ini
+                </button>
+            </div>
+        <?php endif; ?>
+
+        <div class="mb-3">
+            <label class="form-label">Nama</label>
+            <input type="text" name="nama" class="form-control" id="namaInput"
+                   value="<?= htmlspecialchars($user['nama']) ?>" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control" id="emailInput"
+                   value="<?= htmlspecialchars($user['email']) ?>" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">No. Telepon</label>
+            <input type="text" name="no_telp" class="form-control" id="telpInput"
+                   value="<?= htmlspecialchars($user['no_telp']) ?>">
+        </div>
+
+        <button class="btn btn-neutral w-100">Simpan Perubahan</button>
+    </form>
+</div>
 </div>
 
-<div class="mb-3">
-<label class="form-label">Nama</label>
-<input type="text" name="nama" class="form-control" id="namaInput"
-       value="<?= htmlspecialchars($user['nama']) ?>" required>
-</div>
+<?php if(!empty($user['foto'])): ?>
+    <form id="deletePhotoForm" method="post" style="display:none;">
+        <input type="hidden" name="delete_photo" value="1">
+    </form>
+<?php endif; ?>
 
-<div class="mb-3">
-<label class="form-label">Email</label>
-<input type="email" name="email" class="form-control" id="emailInput"
-       value="<?= htmlspecialchars($user['email']) ?>" required>
-</div>
-
-<div class="mb-3">
-<label class="form-label">No. Telepon</label>
-<input type="text" name="no_telp" class="form-control" id="telpInput"
-       value="<?= htmlspecialchars($user['no_telp']) ?>">
-</div>
-
-<button class="btn btn-neutral w-100">Simpan Perubahan</button>
-</form>
-</div>
-</div>
-
-<!-- BARANG -->
 <div class="d-flex justify-content-between align-items-center mb-3">
 <h5 class="section-title mb-0">Barang yang aku jual</h5>
 <a href="jual.php" class="btn btn-sm btn-neutral">Tambah Barang</a>
@@ -214,10 +294,21 @@ Belum ada barang yang kamu jual
 document.addEventListener('DOMContentLoaded', function() {
     const editBtn = document.querySelector('[data-bs-target="#editProfileForm"]');
     const flashMsg = document.querySelector('.flash-msg');
+    const deletePhotoBtn = document.getElementById('deletePhotoBtn');
 
     if(editBtn && flashMsg){
         editBtn.addEventListener('click', () => {
             flashMsg.remove(); // hanya hapus notif profil
+        });
+    }
+
+    // NEW JAVASCRIPT: Trigger hidden delete form
+    if(deletePhotoBtn){
+        deletePhotoBtn.addEventListener('click', function(e){
+            e.preventDefault();
+            if(confirm('Apakah Anda yakin ingin menghapus foto profil?')){
+                document.getElementById('deletePhotoForm').submit();
+            }
         });
     }
 

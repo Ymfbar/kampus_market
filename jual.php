@@ -1,47 +1,80 @@
 <?php 
-include 'includes/header.php'; 
-include 'includes/auth.php'; 
-
-// ambil kategori
-$catResult = $conn->query("SELECT * FROM categories ORDER BY nama_kategori ASC");
+// BLOK LOGIKA INI HARUS DI ATAS SEMUA INCLUDE YANG MENGHASILKAN OUTPUT!
+session_start();
+include 'includes/config.php';
+include 'includes/auth.php'; // Periksa otentikasi lebih awal
 
 $msg = '';
+
+// Mengambil pesan flash dari session jika ada
+if (isset($_SESSION['flash_msg'])) {
+    $msg = $_SESSION['flash_msg'];
+    unset($_SESSION['flash_msg']);
+}
+
+
 if($_SERVER['REQUEST_METHOD'] === 'POST'){
     $nama = trim($_POST['nama_barang']);
     $harga = (int) str_replace('.', '', $_POST['harga']);
     $deskripsi = trim($_POST['deskripsi']);
     $kategori = (int) $_POST['kategori'];
 
+    $upload_error = false;
     if(!isset($_FILES['foto']) || $_FILES['foto']['error'] !== UPLOAD_ERR_OK){
-        $msg = "Foto wajib di-upload";
-    } else {
+        $_SESSION['flash_msg'] = "Foto wajib di-upload";
+        $upload_error = true;
+    } 
+
+    if (!$upload_error) {
         $ext = pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION);
         $allow = ['jpg','jpeg','png','webp'];
         if(!in_array(strtolower($ext), $allow)){
-            $msg = "Format foto tidak valid";
-        } else {
-            $foto_name = uniqid('itm_').'.'.$ext;
-            move_uploaded_file($_FILES['foto']['tmp_name'], 'uploads/'.$foto_name);
+            $_SESSION['flash_msg'] = "Format foto tidak valid";
+            $upload_error = true;
+        } 
+    }
 
-            if($nama){
-                $stmt = $conn->prepare(
-                    "INSERT INTO items (user_id, kategori_id, nama_barang, deskripsi, harga, foto)
-                     VALUES (?,?,?,?,?,?)"
-                );
-                $uid = $_SESSION['user']['id'];
-                $stmt->bind_param('iissis', $uid, $kategori, $nama, $deskripsi, $harga, $foto_name);
+    if (!$upload_error) {
+        $foto_name = uniqid('itm_').'.'.$ext;
+        
+        if($nama){
+            $stmt = $conn->prepare(
+                "INSERT INTO items (user_id, kategori_id, nama_barang, deskripsi, harga, foto)
+                 VALUES (?,?,?,?,?,?)"
+            );
+            $uid = $_SESSION['user']['id'];
+            $stmt->bind_param('iissis', $uid, $kategori, $nama, $deskripsi, $harga, $foto_name);
 
-                if($stmt->execute()){
-                    $msg = "Barang berhasil diposting";
-                } else {
-                    $msg = "Gagal posting barang";
-                }
+            if($stmt->execute()){
+                // Pindahkan file hanya jika INSERT berhasil
+                move_uploaded_file($_FILES['foto']['tmp_name'], 'uploads/'.$foto_name);
+                
+                // PRG: Lakukan REDIRECT setelah POST berhasil
+                $_SESSION['flash_msg'] = "Barang berhasil diposting";
+                header("Location: jual.php");
+                exit;
             } else {
-                $msg = "Nama barang wajib diisi";
+                $_SESSION['flash_msg'] = "Gagal posting barang";
             }
+        } else {
+            $_SESSION['flash_msg'] = "Nama barang wajib diisi";
+        }
+        
+        // Redirect jika ada error POST tapi bukan error header
+        if(isset($_SESSION['flash_msg'])){
+            header("Location: jual.php");
+            exit;
         }
     }
 }
+?>
+
+<?php 
+// Panggil header setelah semua logika redirect selesai
+include 'includes/header.php'; 
+
+// ambil kategori (Setelah include header untuk mendapatkan koneksi yang bersih)
+$catResult = $conn->query("SELECT * FROM categories ORDER BY nama_kategori ASC");
 ?>
 
 <style>
@@ -52,8 +85,9 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
     overflow:hidden;
 }
 .upload-area{
-    background:#f9fafb;
-    border-right:1px solid #e5e7eb;
+    /* PERUBAHAN DI SINI: Warna putih */
+    background: #ffffff; /* Putih */
+    border-right:1px solid #e5e7eb; /* Batas abu-abu standar */
 }
 .upload-placeholder{
     height:260px;
@@ -94,7 +128,6 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
 
 <div class="row g-0">
 
-<!-- LEFT : UPLOAD -->
 <div class="col-md-5 upload-area p-4 d-flex flex-column justify-content-center">
 
 <label for="foto" style="cursor:pointer;">
@@ -119,7 +152,6 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
 
 </div>
 
-<!-- RIGHT : FORM -->
 <div class="col-md-7 p-4">
 
 <div class="mb-3">

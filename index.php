@@ -1,10 +1,9 @@
 <?php include 'includes/header.php'; ?>
 
-<!-- HERO SECTION -->
 <div class="container my-5">
 
     <div class="text-center mb-5">
-        <img src="uploads/logo.png" alt="Preppy Finds"
+        <img src="uploads/logoku.png" alt="Preppy Finds"
              class="hero-logo mb-1">
 
         <h1 class="fw-bold display-6 mb-2 text-dark">
@@ -12,15 +11,21 @@
                 Hai, <?= htmlspecialchars($_SESSION['user']['nama']) ?>  
                 <br><span class="fw-semibold text-secondary">Welcome to Preppy Finds</span>
             <?php else: ?>
-                <span class="fw-semibold text-dark">Preppy Finds</span>
+                <span class="fw-semibold text-dark"></span>
             <?php endif; ?>
         </h1>
 
-        <p class="text-muted mb-4">
+        <?php 
+            $text_class = 'text-muted mb-4';
+            if (!isset($_SESSION['user'])) {
+                // Jika tidak login, gunakan font size yang lebih besar
+                $text_class .= ' fs-5 mt-2'; 
+            }
+        ?>
+        <p class="mb-4 <?= $text_class ?>">
             Platform jual beli barang bekas kebutuhan kampus
         </p>
 
-        <!-- VALUE IMAGE ICON -->
         <div class="row justify-content-center value-icons">
 
             <div class="col-4 col-md-3 col-lg-2">
@@ -33,7 +38,7 @@
             <div class="col-4 col-md-3 col-lg-2">
                 <div class="text-center">
                     <img src="uploads/2.png" class="value-img mb-2">
-                    <p class="small fw-semibold mb-0 text-dark">Pengiriman Cepat</p>
+                    <p class="small fw-semibold mb-0 text-dark">Cash On Delivery</p>
                 </div>
             </div>
 
@@ -47,7 +52,6 @@
         </div>
     </div>
 
-    <!-- SECTION TITLE -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="fw-bold text-dark">Barang Terbaru</h5>
         <a href="search.php" class="btn btn-sm btn-outline-dark rounded-pill">
@@ -55,7 +59,6 @@
         </a>
     </div>
 
-    <!-- PRODUCT GRID -->
     <div class="row g-4">
     <?php
     $sql = "SELECT i.*, u.nama AS seller 
@@ -96,11 +99,10 @@
 
 </div>
 
-<!-- STYLE -->
 <style>
 /* hero logo */
 .hero-logo{
-    width:100px;
+    width:1200px;
     height:100px;
     object-fit:contain;
 }

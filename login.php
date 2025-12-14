@@ -22,7 +22,8 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
                 'role'  => $u['role']
             ];
 
-            header("Location: ".($u['role']==='admin' ? 'admin/dashboard.php' : 'dashboard.php'));
+            // PERUBAHAN DI SINI: Redirect user ke index.php
+            header("Location: ".($u['role']==='admin' ? 'admin/dashboard.php' : 'index.php'));
             exit;
         } else {
             $_SESSION['flash_msg'] = "Password salah.";

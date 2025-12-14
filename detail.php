@@ -3,7 +3,7 @@
 <?php
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $stmt = $conn->prepare("
-    SELECT i.*, u.nama AS seller, u.email AS seller_email 
+    SELECT i.*, u.nama AS seller, u.email AS seller_email, u.foto AS seller_foto 
     FROM items i 
     JOIN users u ON i.user_id = u.id 
     WHERE i.id=?
@@ -20,11 +20,17 @@ if($res->num_rows === 0){
 $item = $res->fetch_assoc();
 ?>
 
+<!-- FOTO/LOGO DI TENGAH -->
+    <div class="mb-2 text-center">
+        <img src="uploads/logoku.png" 
+             alt="Logo"
+             style="width:1200px; height:120px; object-fit:contain;">
+    </div>
+
 <div class="container my-4">
 
     <div class="row g-4">
 
-        <!-- FOTO BARANG -->
         <div class="col-md-6">
             <div class="card border-0 shadow-sm">
                 <img 
@@ -35,7 +41,6 @@ $item = $res->fetch_assoc();
             </div>
         </div>
 
-        <!-- DETAIL BARANG -->
         <div class="col-md-6">
 
             <h3 class="fw-bold mb-1"><?= htmlspecialchars($item['nama_barang']) ?></h3>
@@ -47,17 +52,23 @@ $item = $res->fetch_assoc();
                 <?= htmlspecialchars($item['deskripsi']) ?>
             </p>
 
-            <!-- SELLER CARD -->
             <div class="card p-3 mb-3 border-0 shadow-sm bg-light">
                 <div class="d-flex align-items-center">
                     <div class="me-3">
-                        <div class="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center"
-                             style="width:48px;height:48px;">
-                            <?= strtoupper(substr($item['seller'],0,1)) ?>
-                        </div>
+                        <?php if ($item['seller_foto']): ?>
+                            <img src="<?= htmlspecialchars('uploads/'.$item['seller_foto']) ?>" 
+                                 class="rounded-circle"
+                                 style="width:48px;height:48px;object-fit:cover;">
+                        <?php else: ?>
+                            <div class="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center"
+                                 style="width:48px;height:48px;">
+                                <?= strtoupper(substr($item['seller'],0,1)) ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                     <div>
                         <div class="fw-semibold"><?= htmlspecialchars($item['seller']) ?></div>
+                        <small class="text-muted d-block"><?= htmlspecialchars($item['seller_email']) ?></small>
                         <small class="text-muted">Penjual terpercaya</small>
                     </div>
                 </div>
@@ -67,7 +78,6 @@ $item = $res->fetch_assoc();
 
                 <?php if($_SESSION['user']['id'] != $item['user_id']): ?>
 
-                <!-- CHAT SELLER -->
                 <div class="card p-3 border-0 shadow-sm">
                     <h6 class="fw-bold mb-2">Tanya ke Penjual</h6>
                     <form method="POST" action="send_message.php">
@@ -94,7 +104,6 @@ $item = $res->fetch_assoc();
 
             <?php else: ?>
 
-                <!-- JIKA BELUM LOGIN -->
                 <div class="card p-3 border-0 shadow-sm">
                     <h6 class="fw-bold mb-2">Tanya ke Penjual</h6>
                     <form method="POST" action="send_message.php">

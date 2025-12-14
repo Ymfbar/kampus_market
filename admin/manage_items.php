@@ -14,7 +14,19 @@ if (isset($_SESSION['flash_msg_admin'])) {
 ?>
 
 <style>
-/* ... (CSS sama) ... */
+.status-pending {
+    background-color: #fee2e2; /* Merah muda */
+    color: #dc2626; /* Merah */
+}
+.status-approved {
+    background-color: #d1fae5; /* Hijau muda */
+    color: #059669; /* Hijau tua */
+}
+/* Tambahkan kode ini */
+.status-rejected {
+    background-color: #fef3c7; /* Kuning muda */
+    color: #b45309; /* Coklat tua */
+}
 
 /* Tombol untuk Status Pending/Approve */
 .btn-action-approve {
@@ -100,6 +112,13 @@ if (isset($_SESSION['flash_msg_admin'])) {
                class="btn btn-sm btn-action-approve mb-1"
                onclick="return confirm('Setujui item ini?')">
                 Approve
+            </a>
+            </a>
+            <a href="reject_item.php?id=<?= $it['id'] ?>" 
+               class="btn btn-sm btn-action-delete mb-1" 
+               style="background-color: #b45309; color: white;"
+               onclick="return confirm('Tolak item ini? Status akan diubah menjadi Rejected.')">
+                Reject
             </a>
         <?php endif; ?>
 

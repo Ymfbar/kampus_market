@@ -64,8 +64,9 @@
     $sql = "SELECT i.*, u.nama AS seller 
             FROM items i 
             JOIN users u ON i.user_id = u.id 
-            WHERE i.status = 'approved' /* FILTER DITAMBAHKAN */
-            ORDER BY i.created_at DESC";
+            WHERE i.status = 'approved' 
+            ORDER BY i.created_at DESC
+            LIMIT 8";
     $res = $conn->query($sql);
     while($row = $res->fetch_assoc()):
     ?>
@@ -98,7 +99,37 @@
     <?php endwhile; ?>
     </div>
 
-</div>
+    <div class="mt-5 pt-4">
+        <h5 class="fw-bold text-dark mb-4 text-center">About Preppy Finds</h5>
+        
+        <div class="bg-light p-4 p-md-5 rounded-4 shadow-sm border">
+            <div class="row">
+                <div class="col-md-6 mb-4 mb-md-0">
+                    <p class="lead fw-normal text-dark">
+                        Preppy Finds adalah platform yang didirikan khusus untuk memfasilitasi transaksi jual beli barang bekas berkualitas di kalangan mahasiswa.
+                    </p>
+                    <p class="text-secondary">
+                        Kami percaya bahwa barang bekas kebutuhan kampus—mulai dari buku, alat praktikum, hingga perabotan kos—masih memiliki nilai tinggi dan dapat membantu mahasiswa lain berhemat.
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-patch-check-fill text-primary me-2"></i> Mengapa Memilih Kami?</h6>
+                    <ul class="list-unstyled text-secondary">
+                        <li class="mb-2">
+                            <i class="bi bi-circle-fill" style="font-size: 0.5rem; color: #6c757d;"></i> **Keberlanjutan Lingkungan**: Mendukung siklus pakai ulang barang.
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-circle-fill" style="font-size: 0.5rem; color: #6c757d;"></i> **Harga Mahasiswa**: Menawarkan harga yang sangat terjangkau.
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-circle-fill" style="font-size: 0.5rem; color: #6c757d;"></i> **Komunitas Terpercaya**: Lingkungan jual beli yang aman dan eksklusif untuk mahasiswa.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
 
 <style>
 /* hero logo */
@@ -128,6 +159,17 @@
 .value-img:hover{
     opacity:1;
     transform: scale(1.08);
+}
+
+/* New styles for About Us section */
+.rounded-4 {
+    border-radius: 1.5rem !important; /* Membuat sudut lebih bulat */
+}
+.bg-light {
+    background-color: #f8f9fa !important; /* Warna abu-abu sangat muda */
+}
+.text-primary {
+    color: #0d6efd !important; /* Tetap menggunakan warna primary Bootstrap untuk ikon */
 }
 </style>
 

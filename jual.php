@@ -20,6 +20,26 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
     $kategori = (int) $_POST['kategori'];
 
     $upload_error = false;
+    
+    // --- BAGIAN BARU: Penanganan Bukti Bayar Tax Admin (Opsional) ---
+    $bukti_bayar_tax_name = NULL;
+    $has_tax_upload = false;
+    
+    if(isset($_FILES['bukti_bayar_tax']) && $_FILES['bukti_bayar_tax']['error'] === UPLOAD_ERR_OK){
+        $has_tax_upload = true;
+        $ext_tax = pathinfo($_FILES['bukti_bayar_tax']['name'], PATHINFO_EXTENSION);
+        // Izinkan format gambar dan PDF untuk bukti pembayaran
+        $allow_tax = ['jpg','jpeg','png','webp','pdf']; 
+        
+        if(!in_array(strtolower($ext_tax), $allow_tax)){
+            $_SESSION['flash_msg'] = "Format bukti bayar tidak valid (hanya JPG, PNG, WEBP, PDF)";
+            $upload_error = true;
+        } else {
+            $bukti_bayar_tax_name = uniqid('tax_').'.'.$ext_tax;
+        }
+    }
+    // --- AKHIR BAGIAN BARU ---
+
     if(!isset($_FILES['foto']) || $_FILES['foto']['error'] !== UPLOAD_ERR_OK){
         $_SESSION['flash_msg'] = "Foto wajib di-upload";
         $upload_error = true;
@@ -38,16 +58,23 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
         $foto_name = uniqid('itm_').'.'.$ext;
         
         if($nama){
+            // --- MODIFIKASI INSERT QUERY: Tambah bukti_bayar_tax di sini ---
             $stmt = $conn->prepare(
-                "INSERT INTO items (user_id, kategori_id, nama_barang, deskripsi, harga, foto)
-                 VALUES (?,?,?,?,?,?)"
+                "INSERT INTO items (user_id, kategori_id, nama_barang, deskripsi, harga, foto, bukti_bayar_tax)
+                 VALUES (?,?,?,?,?,?,?)"
             );
             $uid = $_SESSION['user']['id'];
-            $stmt->bind_param('iissis', $uid, $kategori, $nama, $deskripsi, $harga, $foto_name);
+            // Tambah 's' untuk parameter bukti_bayar_tax
+            $stmt->bind_param('iississ', $uid, $kategori, $nama, $deskripsi, $harga, $foto_name, $bukti_bayar_tax_name);
 
             if($stmt->execute()){
-                // Pindahkan file hanya jika INSERT berhasil
+                // Pindahkan file foto utama
                 move_uploaded_file($_FILES['foto']['tmp_name'], 'uploads/'.$foto_name);
+                
+                // --- Pindahkan file bukti bayar jika ada ---
+                if($has_tax_upload){
+                    move_uploaded_file($_FILES['bukti_bayar_tax']['tmp_name'], 'uploads/'.$bukti_bayar_tax_name);
+                }
                 
                 // PRG: Lakukan REDIRECT setelah POST berhasil
                 $_SESSION['flash_msg'] = "Barang berhasil diposting";
@@ -111,7 +138,7 @@ $catResult = $conn->query("SELECT * FROM categories ORDER BY nama_kategori ASC")
 }
 </style>
 
-<div class="mb-2 text-center">
+<div class="text-center">
         <img src="uploads/logoku.png" 
              alt="Logo"
              style="width:1200px; height:120px; object-fit:contain;">
@@ -140,7 +167,7 @@ $catResult = $conn->query("SELECT * FROM categories ORDER BY nama_kategori ASC")
 
     <div class="text-center">
         <div class="btn btn-outline-dark rounded-pill px-4">
-            Upload Foto
+            Upload Foto Barang (Wajib)
         </div>
         <p class="text-muted small mt-2">
             JPG, PNG, WEBP • Maks 2MB
@@ -181,6 +208,10 @@ $catResult = $conn->query("SELECT * FROM categories ORDER BY nama_kategori ASC")
     <textarea name="deskripsi" class="form-control" rows="4"></textarea>
 </div>
 
+<div class="mb-4">
+    <label class="form-label">Admin Tax (Rp.2000)</label>
+    <input type="file" name="bukti_bayar_tax" class="form-control" accept=".jpg,.jpeg,.png,.webp,.pdf">
+</div>
 <button class="btn btn-neutral w-100 py-2">
     Posting Barang
 </button>

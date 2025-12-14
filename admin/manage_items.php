@@ -1,80 +1,48 @@
+// ymfbar/kampus_market/kampus_market-0bdaf0d5a808d5a69b67d6f643b0aaae9a1157fd/admin/manage_items.php
+
 <?php
 include '../includes/header.php';
 if(!isset($_SESSION['user']) || $_SESSION['user']['role']!=='admin'){ header("Location: ../index.php"); exit; }
 
+// --- MODIFIKASI: Ambil SEMUA item (tidak peduli status) ---
 $res = $conn->query("SELECT i.*, u.nama AS seller FROM items i JOIN users u ON i.user_id=u.id ORDER BY i.created_at DESC");
+
+// Ambil pesan flash dari session jika ada (dari approve_item.php)
+$msg = '';
+if (isset($_SESSION['flash_msg_admin'])) {
+    $msg = $_SESSION['flash_msg_admin'];
+    unset($_SESSION['flash_msg_admin']);
+}
 ?>
 
 <style>
-/* CSS Kustom untuk Tampilan Minimalis, Modern, dan Elegan */
-.minimal-table {
-    border-collapse: separate;
-    border-spacing: 0;
-    width: 100%;
-    margin-top: 20px;
-    border: 1px solid #e5e7eb; /* Border tipis */
-    border-radius: 12px;
-    overflow: hidden; /* Penting untuk border-radius */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-}
+/* ... (CSS sama) ... */
 
-.minimal-table thead th {
-    background-color: #f9fafb; /* Latar belakang terang untuk header */
-    color: #111827; /* Teks gelap */
+/* Tombol untuk Status Pending/Approve */
+.btn-action-approve {
+    background-color: #10b981; /* Hijau */
+    color: #fff;
+    border: 1px solid #10b981;
+    transition: background-color 0.2s;
+    border-radius: 8px;
+    font-weight: 500;
+}
+.btn-action-approve:hover {
+    background-color: #059669;
+}
+.status-badge {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.8em;
     font-weight: 600;
-    padding: 15px;
-    text-align: left;
-    border-bottom: 1px solid #e5e7eb;
 }
-
-.minimal-table tbody tr {
-    transition: background-color 0.3s ease;
+.status-pending {
+    background-color: #fee2e2; /* Merah muda */
+    color: #dc2626; /* Merah */
 }
-
-.minimal-table tbody tr:hover {
-    background-color: #f3f4f6; /* Hover minimalis */
-}
-
-.minimal-table tbody td {
-    padding: 12px 15px;
-    border-top: 1px solid #f3f4f6;
-    color: #4b5563; /* Teks sedikit abu-abu */
-}
-
-/* Tombol Hitam & Putih (Minimalist) */
-.btn-action-view {
-    background-color: #fff;
-    color: #111827;
-    border: 1px solid #d1d5db;
-    transition: background-color 0.2s, border-color 0.2s;
-    border-radius: 8px;
-    font-weight: 500;
-}
-.btn-action-view:hover {
-    background-color: #f3f4f6;
-    border-color: #9ca3af;
-    color: #111827;
-}
-
-.btn-action-delete {
-    background-color: #111827;
-    color: #fff;
-    border: 1px solid #111827;
-    transition: background-color 0.2s, border-color 0.2s;
-    border-radius: 8px;
-    font-weight: 500;
-}
-.btn-action-delete:hover {
-    background-color: #000;
-    border-color: #000;
-    color: #fff;
-}
-
-/* Customizing Bootstrap .btn-sm */
-.btn-sm {
-    padding: .3rem .75rem;
-    font-size: .875rem;
-    line-height: 1.5;
+.status-approved {
+    background-color: #d1fae5; /* Hijau muda */
+    color: #059669; /* Hijau tua */
 }
 </style>
 
@@ -85,6 +53,11 @@ $res = $conn->query("SELECT i.*, u.nama AS seller FROM items i JOIN users u ON i
 </div>
 
 <h3>📦 Manage Items</h3>
+
+<?php if($msg): ?>
+<div class="alert alert-light border mb-3"><?= $msg ?></div>
+<?php endif; ?>
+
 <table class="table minimal-table">
   <thead>
     <tr>
@@ -92,7 +65,8 @@ $res = $conn->query("SELECT i.*, u.nama AS seller FROM items i JOIN users u ON i
       <th>Nama</th>
       <th>Seller</th>
       <th>Harga</th>
-      <th>Created</th>
+      <th>Status</th> <th>Created</th>
+      <th>Bukti Tax</th>
       <th>Aksi</th>
     </tr>
   </thead>
@@ -103,8 +77,34 @@ $res = $conn->query("SELECT i.*, u.nama AS seller FROM items i JOIN users u ON i
       <td><?= htmlspecialchars($it['nama_barang']) ?></td>
       <td><?= htmlspecialchars($it['seller']) ?></td>
       <td>Rp <?= number_format($it['harga']) ?></td>
+      
+      <td>
+        <span class="status-badge status-<?= $it['status'] ?>">
+            <?= strtoupper($it['status']) ?>
+        </span>
+      </td>
+      
       <td><?= date('d M Y', strtotime($it['created_at'])) ?></td>
       <td>
+        <?php if ($it['bukti_bayar_tax']): ?>
+            <a href="../uploads/<?= htmlspecialchars($it['bukti_bayar_tax']) ?>" 
+               target="_blank" 
+               class="btn btn-sm btn-action-view">
+                Lihat Bukti
+            </a>
+        <?php else: ?>
+            <span class="text-muted">N/A</span>
+        <?php endif; ?>
+      </td>
+      <td>
+        <?php if($it['status'] === 'pending'): ?>
+            <a href="approve_item.php?id=<?= $it['id'] ?>" 
+               class="btn btn-sm btn-action-approve mb-1"
+               onclick="return confirm('Setujui item ini?')">
+                Approve
+            </a>
+        <?php endif; ?>
+
         <a href="../detail.php?id=<?= $it['id'] ?>" class="btn btn-sm btn-action-view">
             Lihat
         </a>

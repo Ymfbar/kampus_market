@@ -181,6 +181,27 @@ $pendingItemsResult = $conn->query("
     font-size:13px;
     color:#6b7280;
 }
+
+/* Modifikasi untuk item yang Approved agar menggunakan border standar */
+.product-card.approved-item {
+    border: 1px solid #e5e7eb; /* Border abu-abu standar */
+}
+
+/* Pertahankan border warning untuk item Pending */
+/* [START] MODIFIKASI: Tambahkan Style untuk Rejected Items */
+.product-card.rejected-item {
+    border: 1px solid #b45309; /* Border warna coklat tua/orange */
+}
+.badge-rejected {
+    background-color: #fef3c7; /* Kuning muda */
+    color: #b45309; /* Coklat tua */
+    font-weight: 600;
+}
+/* [END] MODIFIKASI */
+
+.btn-neutral{
+    background:#111827;
+}
 </style>
 
 <div class="container mt-4">

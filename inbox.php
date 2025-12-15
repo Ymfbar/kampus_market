@@ -286,7 +286,7 @@ body, html {
     <!-- CHAT AREA -->
     <div class="chat-area">
         <div class="chat-header" id="chatHeader">Pilih chat</div>
-        <div class="chat-messages text-center text-muted justify-content-center" id="chatBox">
+        <div class="chat-messages text-center text-light justify-content-center" id="chatBox">
             Pilih chat untuk mulai percakapan
         </div>
         <form id="chatForm" class="chat-input d-none" onsubmit="sendMsg(event)">

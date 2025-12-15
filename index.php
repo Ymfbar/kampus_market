@@ -30,21 +30,21 @@
 
             <div class="col-4 col-md-3 col-lg-2">
                 <div class="text-center">
-                    <img src="uploads/1.png" class="value-img mb-2">
+                    <img src="uploads/11.png" class="value-img mb-2">
                     <p class="small fw-semibold mb-0 text-dark">Harga Terjangkau</p>
                 </div>
             </div>
 
             <div class="col-4 col-md-3 col-lg-2">
                 <div class="text-center">
-                    <img src="uploads/2.png" class="value-img mb-2">
+                    <img src="uploads/22.png" class="value-img mb-2">
                     <p class="small fw-semibold mb-0 text-dark">Cash On Delivery</p>
                 </div>
             </div>
 
             <div class="col-4 col-md-3 col-lg-2">
                 <div class="text-center">
-                    <img src="uploads/3.png" class="value-img mb-2">
+                    <img src="uploads/33.png" class="value-img mb-2">
                     <p class="small fw-semibold mb-0 text-dark">Komunitas Mahasiswa</p>
                 </div>
             </div>

@@ -216,8 +216,14 @@ $catResult = $conn->query("SELECT * FROM categories ORDER BY nama_kategori ASC")
 
 <div class="mb-4">
     <label class="form-label">Admin Tax (Rp.2000)</label>
+    
+    <small class="d-block text-muted mb-2">
+        DANA 089123456789
+    </small>
+    
     <input type="file" name="bukti_bayar_tax" class="form-control" accept=".jpg,.jpeg,.png,.webp,.pdf" required>
-</div>
+    
+    </div>
 <button class="btn btn-neutral w-100 py-2">
     Posting Barang
 </button>
